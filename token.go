@@ -64,6 +64,6 @@ func (t *token) String() string {
 func newToken(t tokenType, v interface{}) *token {
 	return &token{
 		tokenType: t,
-		value: v,
+		value:     v,
 	}
 }
