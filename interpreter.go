@@ -22,13 +22,14 @@ type visitor interface {
 }
 
 type interpreter struct {
-	parser      *parser
 	globalScope map[string]float64
+	parser      *parser
 }
 
 func newInterpreter(input string) *interpreter {
 	return &interpreter{
-		parser: newParser(input),
+		globalScope: make(map[string]float64),
+		parser:      newParser(input),
 	}
 }
 
@@ -47,6 +48,9 @@ func (i *interpreter) visit(n node) (interface{}, error) {
 	nodeTypeName := reflect.TypeOf(n).Elem().Name()
 	methodName := fmt.Sprintf("Visit%c%s", nodeTypeName[0]+'A'-'a', nodeTypeName[1:])
 	returnValues := reflect.ValueOf(i).MethodByName(methodName).Call([]reflect.Value{reflect.ValueOf(n)})
+	if returnValues[1].Interface() == nil {
+		return returnValues[0].Interface(), nil
+	}
 	return returnValues[0].Interface(), returnValues[1].Interface().(error)
 }
 
