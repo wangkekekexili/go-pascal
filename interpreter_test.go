@@ -10,7 +10,8 @@ BEGIN
 		b := A * 2;
 		c := a + B
 	end;
-	x := 10
+	x := 10;
+	_num := 5
 END.
 `
 	i := newInterpreter(program)
@@ -19,10 +20,11 @@ END.
 	}
 
 	expect := map[string]float64{
-		"a": 2,
-		"b": 4,
-		"c": 6,
-		"x": 10,
+		"a":    2,
+		"b":    4,
+		"c":    6,
+		"x":    10,
+		"_num": 5,
 	}
 	for id, value := range expect {
 		if got, ok := i.globalScope[id]; !ok {
