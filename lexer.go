@@ -1,6 +1,9 @@
 package go_pascal
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 type lexer struct {
 	input string
@@ -34,7 +37,7 @@ func (l *lexer) getIDToken() *token {
 	for l.pos < len(l.input) && (isDigit(l.currentChar()) || isAlpha(l.currentChar()) || l.currentChar() == '_') {
 		l.advance()
 	}
-	id := l.input[startIndex:l.pos]
+	id := strings.ToLower(l.input[startIndex:l.pos])
 	if t, ok := keywordToToken[id]; ok {
 		return t
 	}

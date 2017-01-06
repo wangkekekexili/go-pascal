@@ -5,11 +5,11 @@ import "testing"
 func TestInterpreter(t *testing.T) {
 	program := `
 BEGIN
-	BEGIN
+	begin
 		a := 2;
-		b := a * 2;
-		c := a + b
-	END;
+		b := A * 2;
+		c := a + B
+	end;
 	x := 10
 END.
 `

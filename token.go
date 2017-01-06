@@ -41,8 +41,8 @@ var tokenTypeToString = map[tokenType]string{
 }
 
 var keywordToToken = map[string]*token{
-	"BEGIN": newToken(tokenTypeBegin, nil),
-	"END":   newToken(tokenTypeEnd, nil),
+	"begin": newToken(tokenTypeBegin, nil),
+	"end":   newToken(tokenTypeEnd, nil),
 }
 
 func (t tokenType) String() string {
