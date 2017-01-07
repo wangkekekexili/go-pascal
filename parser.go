@@ -60,8 +60,11 @@ func (p *parser) factor() (node, error) {
 			return nil, err
 		}
 		n = newUnaryNode(t, child)
-	case tokenTypeNumber:
-		p.eat(tokenTypeNumber)
+	case tokenTypeIntegerConst:
+		p.eat(tokenTypeIntegerConst)
+		n = newValueNode(t)
+	case tokenTypeRealConst:
+		p.eat(tokenTypeRealConst)
 		n = newValueNode(t)
 	case tokenTypeLParen:
 		p.eat(tokenTypeLParen)
@@ -86,12 +89,14 @@ func (p *parser) term() (node, error) {
 	if err != nil {
 		return nil, err
 	}
-	for p.token.tokenType == tokenTypeMul || p.token.tokenType == tokenTypeDiv {
+	for p.token.tokenType == tokenTypeMul || p.token.tokenType == tokenTypeDivReal || p.token.tokenType == tokenTypeDivInteger {
 		t := p.token
 		if p.token.tokenType == tokenTypeMul {
 			p.eat(tokenTypeMul)
+		} else if p.token.tokenType == tokenTypeDivReal {
+			p.eat(tokenTypeDivReal)
 		} else {
-			p.eat(tokenTypeDiv)
+			p.eat(tokenTypeDivInteger)
 		}
 		right, err := p.factor()
 		if err != nil {
@@ -199,16 +204,105 @@ func (p *parser) compoundStatement() (node, error) {
 	return newCompoundNode(statements), nil
 }
 
-func (p *parser) program() (node, error) {
-	n, err := p.compoundStatement()
+func (p *parser) typeSpec() (node, error) {
+	t := p.token
+	switch t.tokenType {
+	case tokenTypeInteger:
+		p.eat(tokenTypeInteger)
+		return newTypeNode(t), nil
+	case tokenTypeReal:
+		p.eat(tokenTypeReal)
+		return newTypeNode(t), nil
+	default:
+		return nil, p.newErrUnexpectedToken(tokenTypeReal)
+	}
+}
+
+func (p *parser) variableDeclaration() ([]node, error) {
+	id := p.token
+	if err := p.eat(tokenTypeID); err != nil {
+		return nil, err
+	}
+	idTokens := []*token{id}
+
+	for p.token.tokenType == tokenTypeComma {
+		p.eat(tokenTypeComma)
+		id = p.token
+		if err := p.eat(tokenTypeID); err != nil {
+			return nil, err
+		}
+		idTokens = append(idTokens, id)
+	}
+
+	if err := p.eat(tokenTypeColon); err != nil {
+		return nil, err
+	}
+	typeNode, err := p.typeSpec()
 	if err != nil {
 		return nil, err
 	}
-	if err = p.eat(tokenTypeDot); err != nil {
+
+	varDeclNodes := make([]node, len(idTokens))
+	for index, idToken := range idTokens {
+		varDeclNodes[index] = newVarDeclNode(newVarNode(idToken), typeNode)
+	}
+	return varDeclNodes, nil
+}
+
+func (p *parser) declarations() (node, error) {
+	if p.token.tokenType != tokenTypeVar {
+		return newNoOpNode(), nil
+	}
+	p.eat(tokenTypeVar)
+	var children []node
+	for {
+		varDecl, err := p.variableDeclaration()
+		if err != nil {
+			return nil, err
+		}
+		children = append(children, varDecl...)
+		if err = p.eat(tokenTypeSemi); err != nil {
+			return nil, err
+		}
+		if p.token.tokenType != tokenTypeID {
+			break
+		}
+	}
+	return newDeclNode(children), nil
+}
+
+func (p *parser) block() (node, error) {
+	decl, err := p.declarations()
+	if err != nil {
 		return nil, err
 	}
-	if err = p.eat(tokenTypeEOF); err != nil {
+	compound, err := p.compoundStatement()
+	if err != nil {
 		return nil, err
 	}
-	return n, nil
+	return newBlockNode(decl, compound), nil
+}
+
+func (p *parser) program() (node, error) {
+	if err := p.eat(tokenTypeProgram); err != nil {
+		return nil, err
+	}
+	programNameToken := p.token
+	if err := p.eat(tokenTypeID); err != nil {
+		return nil, err
+	}
+	if err := p.eat(tokenTypeSemi); err != nil {
+		return nil, err
+	}
+	blockNode, err := p.block()
+	if err != nil {
+		return nil, err
+	}
+	if err := p.eat(tokenTypeDot); err != nil {
+		return nil, err
+	}
+	if err := p.eat(tokenTypeEOF); err != nil {
+		return nil, err
+	}
+	return newProgramNode(programNameToken, blockNode), nil
 }

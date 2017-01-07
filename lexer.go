@@ -44,8 +44,21 @@ func (l *lexer) getIDToken() *token {
 	return newToken(tokenTypeID, id)
 }
 
+// getNumberToken detects integer or real number.
 func (l *lexer) getNumberToken() *token {
 	startIndex := l.pos
+	for l.pos < len(l.input) && isDigit(l.currentChar()) {
+		l.advance()
+	}
+	if l.pos >= len(l.input) || l.currentChar() != '.' {
+		value, err := strconv.ParseInt(l.input[startIndex:l.pos], 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		return newToken(tokenTypeIntegerConst, int(value))
+	}
+
+	l.advance()
 	for l.pos < len(l.input) && isDigit(l.currentChar()) {
 		l.advance()
 	}
@@ -53,7 +66,7 @@ func (l *lexer) getNumberToken() *token {
 	if err != nil {
 		panic(err)
 	}
-	return newToken(tokenTypeNumber, value)
+	return newToken(tokenTypeRealConst, value)
 }
 
 func (l *lexer) getAllTokens() []*token {
@@ -78,11 +91,14 @@ func (l *lexer) getNextToken() *token {
 	switch {
 	case ch == '_' || isAlpha(ch):
 		t = l.getIDToken()
-	case isDigit(ch):
+	case isDigit(ch) || ch == '.' && isDigit(l.peek()):
 		t = l.getNumberToken()
 	case ch == '.':
 		l.advance()
 		t = newToken(tokenTypeDot, nil)
+	case ch == ',':
+		l.advance()
+		t = newToken(tokenTypeComma, nil)
 	case ch == ';':
 		l.advance()
 		t = newToken(tokenTypeSemi, nil)
@@ -90,6 +106,9 @@ func (l *lexer) getNextToken() *token {
 		l.advance()
 		l.advance()
 		t = newToken(tokenTypeAssign, nil)
+	case ch == ':' && l.peek() != '=':
+		l.advance()
+		t = newToken(tokenTypeColon, nil)
 	case ch == '+':
 		l.advance()
 		t = newToken(tokenTypePlus, nil)
@@ -101,19 +120,31 @@ func (l *lexer) getNextToken() *token {
 		t = newToken(tokenTypeMul, nil)
 	case ch == '/':
 		l.advance()
-		t = newToken(tokenTypeDiv, nil)
+		t = newToken(tokenTypeDivReal, nil)
 	case ch == '(':
 		l.advance()
 		t = newToken(tokenTypeLParen, nil)
 	case ch == ')':
 		l.advance()
 		t = newToken(tokenTypeRParen, nil)
+	case ch == '{':
+		l.skipComment()
+		return l.getNextToken()
 	default:
 		l.advance()
 		t = newToken(tokenTypeUnknown, ch)
 	}
 
 	return t
+}
+
+func (l *lexer) skipComment() {
+	for l.pos < len(l.input) && l.currentChar() != '}' {
+		l.advance()
+	}
+	if l.currentChar() == '}' {
+		l.advance()
+	}
 }
 
 func (l *lexer) skipWhitespace() {

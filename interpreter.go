@@ -22,13 +22,13 @@ type visitor interface {
 }
 
 type interpreter struct {
-	globalScope map[string]float64
+	globalScope map[string]interface{}
 	parser      *parser
 }
 
 func newInterpreter(input string) *interpreter {
 	return &interpreter{
-		globalScope: make(map[string]float64),
+		globalScope: make(map[string]interface{}),
 		parser:      newParser(input),
 	}
 }
@@ -54,38 +54,28 @@ func (i *interpreter) visit(n node) (interface{}, error) {
 	return returnValues[0].Interface(), returnValues[1].Interface().(error)
 }
 
-func (i *interpreter) VisitAssignNode(n node) (interface{}, error) {
-	r := n.(*assignNode)
-	right, err := i.visit(r.right)
-	if err != nil {
+func (i *interpreter) VisitProgramNode(n node) (interface{}, error) {
+	r := n.(*programNode)
+	return i.visit(r.block)
+}
+
+func (i *interpreter) VisitBlockNode(n node) (interface{}, error) {
+	r := n.(*blockNode)
+	if _, err := i.visit(r.declNode); err != nil {
 		return nil, err
 	}
-	i.globalScope[r.t.value.(string)] = right.(float64)
+	if _, err := i.visit(r.compoundNode); err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 
-func (i *interpreter) VisitBinaryNode(n node) (interface{}, error) {
-	r := n.(*binaryNode)
-	left, err := i.visit(r.left)
-	if err != nil {
-		return nil, err
-	}
-	leftValue := left.(float64)
-	right, err := i.visit(r.right)
-	if err != nil {
-		return nil, err
-	}
-	rightValue := right.(float64)
-
-	switch r.t.tokenType {
-	case tokenTypePlus:
-		return leftValue + rightValue, nil
-	case tokenTypeMinus:
-		return leftValue - rightValue, nil
-	case tokenTypeMul:
-		return leftValue * rightValue, nil
-	case tokenTypeDiv:
-		return leftValue / rightValue, nil
+func (i *interpreter) VisitDeclNode(n node) (interface{}, error) {
+	r := n.(*declNode)
+	for _, child := range r.children {
+		if _, err := i.visit(child); err != nil {
+			return nil, err
+		}
 	}
 	return nil, nil
 }
@@ -100,7 +90,58 @@ func (i *interpreter) VisitCompoundNode(n node) (interface{}, error) {
 	return nil, nil
 }
 
-func (i *interpreter) VisitNoOpNode(n node) (interface{}, error) {
+func (i *interpreter) VisitVarDeclNode(n node) (interface{}, error) {
+	//r := n.(*varDeclNode)
+	return nil, nil
+}
+
+func (i *interpreter) VisitVarNode(n node) (interface{}, error) {
+	r := n.(*varNode)
+	id := r.t.value.(string)
+	if value, ok := i.globalScope[id]; ok {
+		return value, nil
+	}
+	return nil, newErrUndefinedIdentifier(id)
+}
+
+func (i *interpreter) VisitTypeNode(n node) (interface{}, error) {
+	//r := n.(*typeNode)
+	return nil, nil
+}
+
+func (i *interpreter) VisitAssignNode(n node) (interface{}, error) {
+	r := n.(*assignNode)
+	right, err := i.visit(r.right)
+	if err != nil {
+		return nil, err
+	}
+	i.globalScope[r.t.value.(string)] = right
+	return nil, nil
+}
+
+func (i *interpreter) VisitBinaryNode(n node) (interface{}, error) {
+	r := n.(*binaryNode)
+	left, err := i.visit(r.left)
+	if err != nil {
+		return nil, err
+	}
+	right, err := i.visit(r.right)
+	if err != nil {
+		return nil, err
+	}
+
+	switch r.t.tokenType {
+	case tokenTypePlus:
+		return add(left, right), nil
+	case tokenTypeMinus:
+		return minus(left, right), nil
+	case tokenTypeMul:
+		return mul(left, right), nil
+	case tokenTypeDivReal:
+		return divReal(left, right), nil
+	case tokenTypeDivInteger:
+		return divInt(left, right), nil
+	}
 	return nil, nil
 }
 
@@ -110,7 +151,14 @@ func (i *interpreter) VisitUnaryNode(n node) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if r.t.tokenType == tokenTypeMinus {
+		switch v := childValue.(type) {
+		case int:
+			return -v, nil
+		case float64:
+			return -v, nil
+		}
 		return -childValue.(float64), nil
 	} else {
 		return childValue, nil
@@ -122,11 +170,6 @@ func (i *interpreter) VisitValueNode(n node) (interface{}, error) {
 	return r.t.value, nil
 }
 
-func (i *interpreter) VisitVarNode(n node) (interface{}, error) {
-	r := n.(*varNode)
-	id := r.t.value.(string)
-	if value, ok := i.globalScope[id]; ok {
-		return value, nil
-	}
-	return nil, newErrUndefinedIdentifier(id)
+func (i *interpreter) VisitNoOpNode(n node) (interface{}, error) {
+	return nil, nil
 }

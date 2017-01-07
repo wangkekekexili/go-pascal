@@ -4,6 +4,7 @@ import "testing"
 
 func TestInterpreter(t *testing.T) {
 	program := `
+PROGRAM test;
 BEGIN
 	begin
 		a := 2;
@@ -19,7 +20,7 @@ END.
 		t.Fatal(err)
 	}
 
-	expect := map[string]float64{
+	expect := map[string]interface{}{
 		"a":    2,
 		"b":    4,
 		"c":    6,

@@ -5,44 +5,75 @@ import "fmt"
 type tokenType int
 
 const (
-	tokenTypeDot tokenType = iota
-	tokenTypeBegin
+	tokenTypeBegin tokenType = iota
 	tokenTypeEnd
-	tokenTypeSemi
-	tokenTypeAssign
+	tokenTypeInteger
+	tokenTypeProgram
+	tokenTypeReal
+	tokenTypeVar
+
 	tokenTypeID
-	tokenTypePlus
+
+	tokenTypeIntegerConst
+	tokenTypeRealConst
+
+	tokenTypeAssign
+	tokenTypeColon
+	tokenTypeComma
+	tokenTypeDot
+	tokenTypeSemi
+
+	tokenTypeDivInteger
+	tokenTypeDivReal
+	tokenTypeLParen
 	tokenTypeMinus
 	tokenTypeMul
-	tokenTypeDiv
-	tokenTypeLParen
+	tokenTypePlus
 	tokenTypeRParen
-	tokenTypeNumber
+
 	tokenTypeEOF
 	tokenTypeUnknown
 )
 
 var tokenTypeToString = map[tokenType]string{
-	tokenTypeDot:     "dot",
 	tokenTypeBegin:   "keyword BEGIN",
 	tokenTypeEnd:     "keyword END",
-	tokenTypeSemi:    "semicolon",
-	tokenTypeAssign:  "assignment",
-	tokenTypeID:      "ID",
-	tokenTypePlus:    "plus",
-	tokenTypeMinus:   "minus",
-	tokenTypeMul:     "multiply",
-	tokenTypeDiv:     "divide",
-	tokenTypeLParen:  "left parenthesis",
-	tokenTypeRParen:  "right parenthesis",
-	tokenTypeNumber:  "number",
+	tokenTypeInteger: "keyword INTEGER",
+	tokenTypeProgram: "keyword PROGRAM",
+	tokenTypeReal:    "keyword REAL",
+	tokenTypeVar:     "keyword VAR",
+
+	tokenTypeID: "identifier",
+
+	tokenTypeIntegerConst: "integer number constant",
+	tokenTypeRealConst:    "real number constant",
+
+	tokenTypeAssign: "assign",
+	tokenTypeColon:  "colon",
+	tokenTypeComma:  "comma",
+	tokenTypeDot:    "dot",
+	tokenTypeSemi:   "semicolon",
+
+	tokenTypeDivInteger: "integer divide",
+	tokenTypeDivReal:    "real divide",
+	tokenTypeLParen:     "left paranthensis",
+	tokenTypeMinus:      "minus",
+	tokenTypeMul:        "multiply",
+	tokenTypePlus:       "plus",
+	tokenTypeRParen:     "right paranthensis",
+
 	tokenTypeEOF:     "EOF",
 	tokenTypeUnknown: "unknown character",
 }
 
 var keywordToToken = map[string]*token{
-	"begin": newToken(tokenTypeBegin, nil),
-	"end":   newToken(tokenTypeEnd, nil),
+	"begin":   newToken(tokenTypeBegin, nil),
+	"end":     newToken(tokenTypeEnd, nil),
+	"div":     newToken(tokenTypeDivInteger, nil),
+	"integer": newToken(tokenTypeInteger, nil),
+	"program": newToken(tokenTypeProgram, nil),
+	"real":    newToken(tokenTypeReal, nil),
+	"var":     newToken(tokenTypeVar, nil),
 }
 
 func (t tokenType) String() string {
